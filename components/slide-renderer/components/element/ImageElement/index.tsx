@@ -46,6 +46,9 @@ export function ImageElement({ elementInfo, selectElement }: ImageElementProps) 
   // placeholder string, surfacing a broken-image icon in Pro mode).
   const { resolvedSrc, resolution } = useResolvedImageSrc(elementInfo);
   const canRetry = mediaResolutionCanRetry(resolution);
+  // Same contain-fit rule as BaseImageElement: crop ranges keep fill-stretch
+  // geometry, everything else stays fully visible (no crop, no squash).
+  const hasCropRange = Boolean(elementInfo.clip?.range);
 
   const isCliping = clipingImageElementId === elementInfo.id;
 
@@ -189,6 +192,7 @@ export function ImageElement({ elementInfo, selectElement }: ImageElementProps) 
                     left: imgPosition.left,
                     width: imgPosition.width,
                     height: imgPosition.height,
+                    ...(hasCropRange ? {} : { objectFit: 'contain' as const }),
                     filter,
                   }}
                   alt=""

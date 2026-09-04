@@ -72,6 +72,9 @@ export function BaseImageElement({ elementInfo, renderImage }: BaseImageElementP
           height: imgPosition.height,
           maxWidth: 'none',
           maxHeight: 'none',
+          // Crop ranges rely on fill-stretch geometry; everything else uses
+          // contain so generated art is never squashed or cropped.
+          ...(elementInfo.clip?.range ? {} : { objectFit: 'contain' as const }),
           filter,
           ...softEdgeMaskStyle,
         }}

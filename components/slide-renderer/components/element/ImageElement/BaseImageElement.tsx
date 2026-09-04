@@ -37,6 +37,10 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
   const showDisabled = resolution.kind === 'disabled';
   const showError = resolution.kind === 'failed';
   const canRetry = mediaResolutionCanRetry(resolution);
+  // Crop ranges rely on fill-stretch geometry; everything else uses contain —
+  // generated infographics carry meaning edge-to-edge, so never crop (cover)
+  // or squash (fill) them. Empty space stays transparent over the slide.
+  const hasCropRange = Boolean(elementInfo.clip?.range);
 
   return (
     <div
@@ -125,6 +129,7 @@ export function BaseImageElement({ elementInfo }: BaseImageElementProps) {
                     left: imgPosition.left,
                     width: imgPosition.width,
                     height: imgPosition.height,
+                    ...(hasCropRange ? {} : { objectFit: 'contain' as const }),
                     filter,
                   }}
                   alt=""
