@@ -23,7 +23,12 @@ import {
   getWebSearchProviderDisplayName,
   isWebSearchProviderConfigured,
 } from '@/lib/web-search/constants';
-import type { WebSearchProviderId } from '@/lib/web-search/types';
+import {
+  ALLOWED_LLM_PROVIDERS,
+  ALLOWED_PDF_PROVIDERS,
+  ALLOWED_SEARCH_PROVIDERS,
+  isProviderAllowed,
+} from '@/lib/config/product-allowlists';
 import type { ProviderId } from '@/lib/ai/providers';
 import type {
   ModelInfo,
@@ -96,7 +101,6 @@ export function GenerationToolbar({
   const setPDFProvider = useSettingsStore((s) => s.setPDFProvider);
   const webSearchProviderId = useSettingsStore((s) => s.webSearchProviderId);
   const webSearchProvidersConfig = useSettingsStore((s) => s.webSearchProvidersConfig);
-  const setWebSearchProvider = useSettingsStore((s) => s.setWebSearchProvider);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
@@ -107,13 +111,17 @@ export function GenerationToolbar({
   const selectedWebSearchAvailable = webSearchProvider
     ? isWebSearchProviderConfigured(webSearchProvider, webSearchConfig)
     : false;
-  const webSearchAvailable = Object.values(WEB_SEARCH_PROVIDERS).some((provider) =>
-    isWebSearchProviderConfigured(provider, webSearchProvidersConfig[provider.id]),
-  );
+  const webSearchAvailable = Object.values(WEB_SEARCH_PROVIDERS)
+    .filter((provider) => ALLOWED_SEARCH_PROVIDERS.includes(provider.id))
+    .some((provider) =>
+      isWebSearchProviderConfigured(provider, webSearchProvidersConfig[provider.id]),
+    );
 
-  // Configured LLM providers (only those with valid credentials + models + endpoint)
+  // Configured LLM providers (only those with valid credentials + models + endpoint,
+  // and on the product allowlist — custom providers always pass)
   const configuredProviders = providersConfig
     ? Object.entries(providersConfig)
+        .filter(([id]) => isProviderAllowed(id, ALLOWED_LLM_PROVIDERS))
         .filter(([, config]) => isLLMProviderConfigured(config))
         .map(([id, config]) => ({
           id: id as ProviderId,
@@ -300,32 +308,38 @@ export function GenerationToolbar({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.values(PDF_PROVIDERS).map((provider) => {
-                    const cfg = pdfProvidersConfig[provider.id];
-                    // AliDocMind authenticates with an AK/SK pair rather than a
-                    // single apiKey — recognize either credential shape.
-                    const hasCredentials =
-                      !!cfg?.apiKey || (!!cfg?.accessKeyId && !!cfg?.accessKeySecret);
-                    const available =
-                      !provider.requiresApiKey || hasCredentials || !!cfg?.isServerConfigured;
-                    return (
-                      <SelectItem key={provider.id} value={provider.id} disabled={!available}>
-                        <div
-                          className={cn('flex items-center gap-1.5', !available && 'opacity-50')}
-                        >
-                          {provider.icon && (
-                            <img src={provider.icon} alt={provider.name} className="w-3.5 h-3.5" />
-                          )}
-                          {provider.name}
-                          {cfg?.isServerConfigured && (
-                            <span className="text-[9px] px-1 py-0 rounded border text-muted-foreground">
-                              {t('settings.serverConfigured')}
-                            </span>
-                          )}
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
+                  {Object.values(PDF_PROVIDERS)
+                    .filter((provider) => ALLOWED_PDF_PROVIDERS.includes(provider.id))
+                    .map((provider) => {
+                      const cfg = pdfProvidersConfig[provider.id];
+                      // AliDocMind authenticates with an AK/SK pair rather than a
+                      // single apiKey — recognize either credential shape.
+                      const hasCredentials =
+                        !!cfg?.apiKey || (!!cfg?.accessKeyId && !!cfg?.accessKeySecret);
+                      const available =
+                        !provider.requiresApiKey || hasCredentials || !!cfg?.isServerConfigured;
+                      return (
+                        <SelectItem key={provider.id} value={provider.id} disabled={!available}>
+                          <div
+                            className={cn('flex items-center gap-1.5', !available && 'opacity-50')}
+                          >
+                            {provider.icon && (
+                              <img
+                                src={provider.icon}
+                                alt={provider.name}
+                                className="w-3.5 h-3.5"
+                              />
+                            )}
+                            {provider.name}
+                            {cfg?.isServerConfigured && (
+                              <span className="text-[9px] px-1 py-0 rounded border text-muted-foreground">
+                                {t('settings.serverConfigured')}
+                              </span>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                 </SelectContent>
               </Select>
             </div>
@@ -474,41 +488,6 @@ export function GenerationToolbar({
                   </p>
                 </div>
               </button>
-
-              {/* Provider selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground shrink-0">
-                  {t('toolbar.webSearchProvider')}
-                </span>
-                <Select
-                  value={webSearchProviderId}
-                  onValueChange={(v) => setWebSearchProvider(v as WebSearchProviderId)}
-                >
-                  <SelectTrigger className="h-7 text-xs flex-1 min-w-0">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.values(WEB_SEARCH_PROVIDERS).map((provider) => {
-                      const cfg = webSearchProvidersConfig[provider.id];
-                      const available = isWebSearchProviderConfigured(provider, cfg);
-                      return (
-                        <SelectItem key={provider.id} value={provider.id} disabled={!available}>
-                          <div
-                            className={cn('flex items-center gap-1.5', !available && 'opacity-50')}
-                          >
-                            {getWebSearchProviderDisplayName(provider.id, t)}
-                            {cfg?.isServerConfigured && (
-                              <span className="text-[9px] px-1 py-0 rounded border text-muted-foreground">
-                                {t('settings.serverConfigured')}
-                              </span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
-              </div>
             </PopoverContent>
           </Popover>
         ) : (
@@ -529,7 +508,7 @@ export function GenerationToolbar({
         <div className="w-px h-4 bg-border/60 mx-1" />
 
         {/* ── Media popover ── */}
-        <MediaPopover onSettingsOpen={onSettingsOpen} />
+        <MediaPopover />
       </div>
     </div>
   );
@@ -624,6 +603,14 @@ function InlineThinkingControl({
       : effective?.mode === 'disabled'
         ? 'disabled'
         : 'enabled';
+  // Mode-based controls may restrict the offered modes (e.g. MiniMax M3 offers
+  // 自动/关 only); default is the full auto/disabled/enabled set.
+  const modeValues: Array<'auto' | 'disabled' | 'enabled'> =
+    thinking.control === 'mode'
+      ? ((thinking.modeValues ?? ['auto', 'disabled', 'enabled']) as Array<
+          'auto' | 'disabled' | 'enabled'
+        >)
+      : ['disabled', 'enabled'];
 
   return (
     <div
@@ -676,17 +663,21 @@ function InlineThinkingControl({
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end" className="min-w-[96px]">
-              {thinking.control === 'mode' && (
+              {thinking.control === 'mode' && modeValues.includes('auto') && (
                 <SelectItem value="auto" className={selectItemCls}>
                   {t('toolbar.auto')}
                 </SelectItem>
               )}
-              <SelectItem value="disabled" className={selectItemCls}>
-                {t('toolbar.off')}
-              </SelectItem>
-              <SelectItem value="enabled" className={selectItemCls}>
-                {t('toolbar.on')}
-              </SelectItem>
+              {modeValues.includes('disabled') && (
+                <SelectItem value="disabled" className={selectItemCls}>
+                  {t('toolbar.off')}
+                </SelectItem>
+              )}
+              {modeValues.includes('enabled') && (
+                <SelectItem value="enabled" className={selectItemCls}>
+                  {t('toolbar.on')}
+                </SelectItem>
+              )}
             </SelectContent>
           </Select>
         )}

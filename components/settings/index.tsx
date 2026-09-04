@@ -65,6 +65,16 @@ import { AddProviderDialog, type NewProviderData } from './add-provider-dialog';
 import { AddAudioProviderDialog, type NewAudioProviderData } from './add-audio-provider-dialog';
 import { isCustomTTSProvider, isCustomASRProvider } from '@/lib/audio/types';
 import { resolveASRProviderName, resolveTTSProviderName } from '@/lib/audio/provider-display';
+import {
+  ALLOWED_LLM_PROVIDERS,
+  ALLOWED_IMAGE_PROVIDERS,
+  ALLOWED_VIDEO_PROVIDERS,
+  ALLOWED_TTS_PROVIDERS,
+  ALLOWED_ASR_PROVIDERS,
+  ALLOWED_PDF_PROVIDERS,
+  ALLOWED_SEARCH_PROVIDERS,
+  isProviderAllowed,
+} from '@/lib/config/product-allowlists';
 import type { SettingsSection, EditingModel } from '@/lib/types/settings';
 
 // ─── Provider List Column (reusable) ───
@@ -351,20 +361,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     setTimeout(() => setSaveStatus('idle'), 2000);
   };
 
-  const selectedProvider = providersConfig[selectedProviderId]
-    ? {
-        id: selectedProviderId,
-        name: providersConfig[selectedProviderId].name,
-        type: providersConfig[selectedProviderId].type,
-        defaultBaseUrl: providersConfig[selectedProviderId].defaultBaseUrl,
-        baseUrlPlaceholder: PROVIDERS[selectedProviderId]?.baseUrlPlaceholder,
-        supportsModelDiscovery: PROVIDERS[selectedProviderId]?.supportsModelDiscovery,
-        alternateBaseUrls: PROVIDERS[selectedProviderId]?.alternateBaseUrls,
-        icon: providersConfig[selectedProviderId].icon,
-        requiresApiKey: providersConfig[selectedProviderId].requiresApiKey,
-        models: providersConfig[selectedProviderId].models,
-      }
-    : undefined;
+  // selectedProvider is derived after the active* ids below (see followVisible).
 
   // Handle model editing
   const handleEditModel = (pid: ProviderId, modelIndex: number) => {
@@ -379,7 +376,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
 
   const handleAddModel = () => {
     setEditingModel({
-      providerId: selectedProviderId,
+      providerId: activeProviderId,
       modelIndex: null,
       model: {
         id: '',
@@ -510,7 +507,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     // hand-rolled "pick the first config key" here: that ignored usability
     // and could re-select an invalid/unusable provider.
     setProvidersConfig(updatedConfig);
-    if (selectedProviderId === pid) {
+    if (activeProviderId === pid) {
       // Settings-panel tab only (local UI), independent of model selection.
       const firstRemainingPid = Object.keys(updatedConfig)[0] as ProviderId | undefined;
       setSelectedProviderId(firstRemainingPid || 'openai');
@@ -525,17 +522,89 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
     toast.success(t('settings.resetSuccess'));
   };
 
-  // Get all providers from providersConfig
-  const allProviders = Object.entries(providersConfig).map(([id, config]) => ({
-    id: id as ProviderId,
-    name: config.name,
-    type: config.type,
-    defaultBaseUrl: config.defaultBaseUrl,
-    icon: config.icon,
-    requiresApiKey: config.requiresApiKey,
-    models: config.models,
-    isServerConfigured: config.isServerConfigured,
-  }));
+  // Get all providers from providersConfig (allowlist-filtered; custom providers pass)
+  const allProviders = Object.entries(providersConfig)
+    .filter(([id]) => isProviderAllowed(id, ALLOWED_LLM_PROVIDERS))
+    .map(([id, config]) => ({
+      id: id as ProviderId,
+      name: config.name,
+      type: config.type,
+      defaultBaseUrl: config.defaultBaseUrl,
+      icon: config.icon,
+      requiresApiKey: config.requiresApiKey,
+      models: config.models,
+      isServerConfigured: config.isServerConfigured,
+    }));
+
+  // Visible (allowlisted) provider lists per section. Display-layer only.
+  const visiblePdfProviders = Object.values(PDF_PROVIDERS).filter((p) =>
+    ALLOWED_PDF_PROVIDERS.includes(p.id),
+  );
+  const visibleWebSearchProviders = Object.values(WEB_SEARCH_PROVIDERS).filter((p) =>
+    ALLOWED_SEARCH_PROVIDERS.includes(p.id),
+  );
+  const visibleImageProviders = Object.values(IMAGE_PROVIDERS).filter((p) =>
+    ALLOWED_IMAGE_PROVIDERS.includes(p.id),
+  );
+  const visibleVideoProviders = Object.values(VIDEO_PROVIDERS).filter((p) =>
+    ALLOWED_VIDEO_PROVIDERS.includes(p.id),
+  );
+  const visibleTtsProviderIds = [
+    ...Object.values(TTS_PROVIDERS)
+      .filter((p) => ALLOWED_TTS_PROVIDERS.includes(p.id))
+      .map((p) => p.id),
+    ...Object.keys(ttsProvidersConfig).filter(isCustomTTSProvider),
+  ] as TTSProviderId[];
+  const visibleAsrProviderIds = [
+    ...Object.values(ASR_PROVIDERS)
+      .filter((p) => ALLOWED_ASR_PROVIDERS.includes(p.id))
+      .map((p) => p.id),
+    ...Object.keys(asrProvidersConfig).filter(isCustomASRProvider),
+  ] as ASRProviderId[];
+
+  // Display-layer fallback: when the store's current selection is hidden by the
+  // allowlist, the panel follows the first visible entry instead. The store and
+  // its resolution logic are untouched.
+  const followVisible = <T extends string>(selected: T, visibleIds: readonly T[]): T =>
+    visibleIds.includes(selected) ? selected : (visibleIds[0] ?? selected);
+
+  const activeProviderId = followVisible(
+    selectedProviderId,
+    allProviders.map((p) => p.id),
+  );
+  const activePdfProviderId = followVisible(
+    selectedPdfProviderId,
+    visiblePdfProviders.map((p) => p.id),
+  );
+  const activeWebSearchProviderId = followVisible(
+    selectedWebSearchProviderId,
+    visibleWebSearchProviders.map((p) => p.id),
+  );
+  const activeImageProviderId = followVisible(
+    selectedImageProviderId,
+    visibleImageProviders.map((p) => p.id),
+  );
+  const activeVideoProviderId = followVisible(
+    selectedVideoProviderId,
+    visibleVideoProviders.map((p) => p.id),
+  );
+  const activeTtsProviderId = followVisible(ttsProviderId, visibleTtsProviderIds);
+  const activeAsrProviderId = followVisible(asrProviderId, visibleAsrProviderIds);
+
+  const selectedProvider = providersConfig[activeProviderId]
+    ? {
+        id: activeProviderId,
+        name: providersConfig[activeProviderId].name,
+        type: providersConfig[activeProviderId].type,
+        defaultBaseUrl: providersConfig[activeProviderId].defaultBaseUrl,
+        baseUrlPlaceholder: PROVIDERS[activeProviderId]?.baseUrlPlaceholder,
+        supportsModelDiscovery: PROVIDERS[activeProviderId]?.supportsModelDiscovery,
+        alternateBaseUrls: PROVIDERS[activeProviderId]?.alternateBaseUrls,
+        icon: providersConfig[activeProviderId].icon,
+        requiresApiKey: providersConfig[activeProviderId].requiresApiKey,
+        models: providersConfig[activeProviderId].models,
+      }
+    : undefined;
 
   // Sections that show a provider list column
   const _hasProviderList = [
@@ -597,7 +666,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
         }
         return null;
       case 'pdf': {
-        const pdfProvider = PDF_PROVIDERS[selectedPdfProviderId];
+        const pdfProvider = PDF_PROVIDERS[activePdfProviderId];
         if (!pdfProvider) return null;
         return (
           <>
@@ -618,7 +687,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
         );
       }
       case 'web-search': {
-        const wsProvider = WEB_SEARCH_PROVIDERS[selectedWebSearchProviderId];
+        const wsProvider = WEB_SEARCH_PROVIDERS[activeWebSearchProviderId];
         if (!wsProvider) return null;
         return (
           <>
@@ -641,8 +710,8 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
         );
       }
       case 'image': {
-        const imgProvider = IMAGE_PROVIDERS[selectedImageProviderId];
-        const imgIcon = IMAGE_PROVIDER_ICONS[selectedImageProviderId];
+        const imgProvider = IMAGE_PROVIDERS[activeImageProviderId];
+        const imgIcon = IMAGE_PROVIDER_ICONS[activeImageProviderId];
         return (
           <>
             {imgIcon ? (
@@ -658,14 +727,14 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
               <Box className="h-8 w-8 text-muted-foreground" />
             )}
             <h2 className="text-lg font-semibold">
-              {t(`settings.${IMAGE_PROVIDER_NAMES[selectedImageProviderId]}`) || imgProvider?.name}
+              {t(`settings.${IMAGE_PROVIDER_NAMES[activeImageProviderId]}`) || imgProvider?.name}
             </h2>
           </>
         );
       }
       case 'video': {
-        const vidProvider = VIDEO_PROVIDERS[selectedVideoProviderId];
-        const vidIcon = VIDEO_PROVIDER_ICONS[selectedVideoProviderId];
+        const vidProvider = VIDEO_PROVIDERS[activeVideoProviderId];
+        const vidIcon = VIDEO_PROVIDER_ICONS[activeVideoProviderId];
         return (
           <>
             {vidIcon ? (
@@ -681,13 +750,13 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
               <Box className="h-8 w-8 text-muted-foreground" />
             )}
             <h2 className="text-lg font-semibold">
-              {t(`settings.${VIDEO_PROVIDER_NAMES[selectedVideoProviderId]}`) || vidProvider?.name}
+              {t(`settings.${VIDEO_PROVIDER_NAMES[activeVideoProviderId]}`) || vidProvider?.name}
             </h2>
           </>
         );
       }
       case 'tts': {
-        const ttsIcon = TTS_PROVIDERS[ttsProviderId as keyof typeof TTS_PROVIDERS]?.icon;
+        const ttsIcon = TTS_PROVIDERS[activeTtsProviderId as keyof typeof TTS_PROVIDERS]?.icon;
         return (
           <>
             {ttsIcon ? (
@@ -702,12 +771,12 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             ) : (
               <Volume2 className="h-6 w-6 text-muted-foreground" />
             )}
-            <h2 className="text-lg font-semibold">{getTTSProviderName(ttsProviderId, t)}</h2>
+            <h2 className="text-lg font-semibold">{getTTSProviderName(activeTtsProviderId, t)}</h2>
           </>
         );
       }
       case 'asr': {
-        const asrIcon = ASR_PROVIDERS[asrProviderId as keyof typeof ASR_PROVIDERS]?.icon;
+        const asrIcon = ASR_PROVIDERS[activeAsrProviderId as keyof typeof ASR_PROVIDERS]?.icon;
         return (
           <>
             {asrIcon ? (
@@ -722,7 +791,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             ) : (
               <Mic className="h-6 w-6 text-muted-foreground" />
             )}
-            <h2 className="text-lg font-semibold">{getASRProviderName(asrProviderId, t)}</h2>
+            <h2 className="text-lg font-semibold">{getASRProviderName(activeAsrProviderId, t)}</h2>
           </>
         );
       }
@@ -883,7 +952,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             <>
               <ProviderList
                 providers={allProviders}
-                selectedProviderId={selectedProviderId}
+                selectedProviderId={activeProviderId}
                 onSelect={handleProviderSelect}
                 onAddProvider={() => setShowAddProviderDialog(true)}
                 width={providerListWidth}
@@ -900,9 +969,9 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           {activeSection === 'pdf' && (
             <>
               <ProviderListColumn
-                providers={Object.values(PDF_PROVIDERS)}
+                providers={visiblePdfProviders}
                 configs={pdfProvidersConfig}
-                selectedId={selectedPdfProviderId}
+                selectedId={activePdfProviderId}
                 onSelect={setSelectedPdfProviderId}
                 width={providerListWidth}
                 t={t}
@@ -919,12 +988,12 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           {activeSection === 'web-search' && (
             <>
               <ProviderListColumn
-                providers={Object.values(WEB_SEARCH_PROVIDERS).map((provider) => ({
+                providers={visibleWebSearchProviders.map((provider) => ({
                   ...provider,
                   name: getWebSearchProviderDisplayName(provider.id, t),
                 }))}
                 configs={webSearchProvidersConfig}
-                selectedId={selectedWebSearchProviderId}
+                selectedId={activeWebSearchProviderId}
                 onSelect={setSelectedWebSearchProviderId}
                 width={providerListWidth}
                 t={t}
@@ -941,13 +1010,13 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           {activeSection === 'image' && (
             <>
               <ProviderListColumn
-                providers={Object.values(IMAGE_PROVIDERS).map((p) => ({
+                providers={visibleImageProviders.map((p) => ({
                   id: p.id,
                   name: t(`settings.${IMAGE_PROVIDER_NAMES[p.id]}`) || p.name,
                   icon: IMAGE_PROVIDER_ICONS[p.id],
                 }))}
                 configs={imageProvidersConfig}
-                selectedId={selectedImageProviderId}
+                selectedId={activeImageProviderId}
                 onSelect={setSelectedImageProviderId}
                 width={providerListWidth}
                 t={t}
@@ -964,13 +1033,13 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
           {activeSection === 'video' && (
             <>
               <ProviderListColumn
-                providers={Object.values(VIDEO_PROVIDERS).map((p) => ({
+                providers={visibleVideoProviders.map((p) => ({
                   id: p.id,
                   name: t(`settings.${VIDEO_PROVIDER_NAMES[p.id]}`) || p.name,
                   icon: VIDEO_PROVIDER_ICONS[p.id],
                 }))}
                 configs={videoProvidersConfig}
-                selectedId={selectedVideoProviderId}
+                selectedId={activeVideoProviderId}
                 onSelect={setSelectedVideoProviderId}
                 width={providerListWidth}
                 t={t}
@@ -988,11 +1057,13 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             <>
               <ProviderListColumn
                 providers={[
-                  ...Object.values(TTS_PROVIDERS).map((p) => ({
-                    id: p.id,
-                    name: getTTSProviderName(p.id, t),
-                    icon: p.icon,
-                  })),
+                  ...Object.values(TTS_PROVIDERS)
+                    .filter((p) => ALLOWED_TTS_PROVIDERS.includes(p.id))
+                    .map((p) => ({
+                      id: p.id,
+                      name: getTTSProviderName(p.id, t),
+                      icon: p.icon,
+                    })),
                   ...Object.entries(ttsProvidersConfig)
                     .filter(([id]) => isCustomTTSProvider(id))
                     .map(([id, cfg]) => ({
@@ -1002,7 +1073,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                     })),
                 ]}
                 configs={ttsProvidersConfig}
-                selectedId={ttsProviderId}
+                selectedId={activeTtsProviderId}
                 onSelect={setTTSProvider}
                 width={providerListWidth}
                 t={t}
@@ -1021,11 +1092,13 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
             <>
               <ProviderListColumn
                 providers={[
-                  ...Object.values(ASR_PROVIDERS).map((p) => ({
-                    id: p.id,
-                    name: getASRProviderName(p.id, t),
-                    icon: p.icon,
-                  })),
+                  ...Object.values(ASR_PROVIDERS)
+                    .filter((p) => ALLOWED_ASR_PROVIDERS.includes(p.id))
+                    .map((p) => ({
+                      id: p.id,
+                      name: getASRProviderName(p.id, t),
+                      icon: p.icon,
+                    })),
                   ...Object.entries(asrProvidersConfig)
                     .filter(([id]) => isCustomASRProvider(id))
                     .map(([id, cfg]) => ({
@@ -1035,7 +1108,7 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
                     })),
                 ]}
                 configs={asrProvidersConfig}
-                selectedId={asrProviderId}
+                selectedId={activeAsrProviderId}
                 onSelect={setASRProvider}
                 width={providerListWidth}
                 t={t}
@@ -1057,12 +1130,12 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
               <div className="flex items-center gap-3">{getHeaderContent()}</div>
               <div className="flex items-center gap-2">
                 {activeSection === 'providers' &&
-                  !providersConfig[selectedProviderId]?.isBuiltIn && (
+                  !providersConfig[activeProviderId]?.isBuiltIn && (
                     <Button
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-destructive hover:text-destructive"
-                      onClick={() => handleDeleteProvider(selectedProviderId)}
+                      onClick={() => handleDeleteProvider(activeProviderId)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1084,40 +1157,40 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
               {activeSection === 'providers' && selectedProvider && (
                 <ProviderConfigPanel
                   provider={selectedProvider}
-                  initialApiKey={providersConfig[selectedProviderId]?.apiKey || ''}
-                  initialBaseUrl={providersConfig[selectedProviderId]?.baseUrl || ''}
+                  initialApiKey={providersConfig[activeProviderId]?.apiKey || ''}
+                  initialBaseUrl={providersConfig[activeProviderId]?.baseUrl || ''}
                   initialRequiresApiKey={
-                    providersConfig[selectedProviderId]?.requiresApiKey ?? true
+                    providersConfig[activeProviderId]?.requiresApiKey ?? true
                   }
                   providersConfig={providersConfig}
                   onConfigChange={(apiKey, baseUrl, requiresApiKey) =>
-                    handleProviderConfigChange(selectedProviderId, apiKey, baseUrl, requiresApiKey)
+                    handleProviderConfigChange(activeProviderId, apiKey, baseUrl, requiresApiKey)
                   }
                   onSave={handleProviderConfigSave}
-                  onEditModel={(index) => handleEditModel(selectedProviderId, index)}
-                  onDeleteModel={(index) => handleDeleteModel(selectedProviderId, index)}
+                  onEditModel={(index) => handleEditModel(activeProviderId, index)}
+                  onDeleteModel={(index) => handleDeleteModel(activeProviderId, index)}
                   onAddModel={handleAddModel}
-                  onModelsFetched={(ids) => handleModelsFetched(selectedProviderId, ids)}
-                  modelsUrl={providersConfig[selectedProviderId]?.modelsUrl}
-                  onResetToDefault={() => handleResetProvider(selectedProviderId)}
-                  isBuiltIn={providersConfig[selectedProviderId]?.isBuiltIn ?? true}
+                  onModelsFetched={(ids) => handleModelsFetched(activeProviderId, ids)}
+                  modelsUrl={providersConfig[activeProviderId]?.modelsUrl}
+                  onResetToDefault={() => handleResetProvider(activeProviderId)}
+                  isBuiltIn={providersConfig[activeProviderId]?.isBuiltIn ?? true}
                 />
               )}
 
               {activeSection === 'pdf' && (
-                <PDFSettings selectedProviderId={selectedPdfProviderId} />
+                <PDFSettings selectedProviderId={activePdfProviderId} />
               )}
               {activeSection === 'web-search' && (
-                <WebSearchSettings selectedProviderId={selectedWebSearchProviderId} />
+                <WebSearchSettings selectedProviderId={activeWebSearchProviderId} />
               )}
               {activeSection === 'image' && (
-                <ImageSettings selectedProviderId={selectedImageProviderId} />
+                <ImageSettings selectedProviderId={activeImageProviderId} />
               )}
               {activeSection === 'video' && (
-                <VideoSettings selectedProviderId={selectedVideoProviderId} />
+                <VideoSettings selectedProviderId={activeVideoProviderId} />
               )}
-              {activeSection === 'tts' && <TTSSettings selectedProviderId={ttsProviderId} />}
-              {activeSection === 'asr' && <ASRSettings selectedProviderId={asrProviderId} />}
+              {activeSection === 'tts' && <TTSSettings selectedProviderId={activeTtsProviderId} />}
+              {activeSection === 'asr' && <ASRSettings selectedProviderId={activeAsrProviderId} />}
             </div>
 
             {/* Footer */}
@@ -1153,12 +1226,12 @@ export function SettingsDialog({ open, onOpenChange, initialSection }: SettingsD
         setEditingModel={setEditingModel}
         onSave={handleSaveModel}
         onAutoSave={handleAutoSaveModel}
-        providerId={selectedProviderId}
-        apiKey={providersConfig[selectedProviderId]?.apiKey || ''}
-        baseUrl={providersConfig[selectedProviderId]?.baseUrl}
-        providerType={providersConfig[selectedProviderId]?.type}
-        requiresApiKey={providersConfig[selectedProviderId]?.requiresApiKey}
-        isServerConfigured={providersConfig[selectedProviderId]?.isServerConfigured}
+        providerId={activeProviderId}
+        apiKey={providersConfig[activeProviderId]?.apiKey || ''}
+        baseUrl={providersConfig[activeProviderId]?.baseUrl}
+        providerType={providersConfig[activeProviderId]?.type}
+        requiresApiKey={providersConfig[activeProviderId]?.requiresApiKey}
+        isServerConfigured={providersConfig[activeProviderId]?.isServerConfigured}
       />
 
       {/* Add Provider Dialog */}

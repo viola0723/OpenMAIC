@@ -2,14 +2,7 @@
 
 import { useState, useCallback, useMemo, Fragment, useEffect } from 'react';
 import type { LucideIcon } from 'lucide-react';
-import {
-  Image as ImageIcon,
-  Video,
-  Volume2,
-  Mic,
-  SlidersHorizontal,
-  ChevronRight,
-} from 'lucide-react';
+import { Image as ImageIcon, Video, Volume2, Mic, SlidersHorizontal } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
   Select,
@@ -33,11 +26,11 @@ import { ASR_PROVIDERS, getASRSupportedLanguages } from '@/lib/audio/constants';
 import type { ImageProviderId, VideoProviderId } from '@/lib/media/types';
 import type { ASRProviderId } from '@/lib/audio/types';
 import { isCustomASRProvider } from '@/lib/audio/types';
-import type { SettingsSection } from '@/lib/types/settings';
-
-interface MediaPopoverProps {
-  onSettingsOpen: (section: SettingsSection) => void;
-}
+import {
+  ALLOWED_IMAGE_PROVIDERS,
+  ALLOWED_VIDEO_PROVIDERS,
+  ALLOWED_ASR_PROVIDERS,
+} from '@/lib/config/product-allowlists';
 
 // ─── Provider icon maps ───
 const IMAGE_PROVIDER_ICONS: Record<string, string> = {
@@ -75,7 +68,7 @@ function providerModels<T extends { id: string; name: string }>(
   return [...builtInModels, ...customModels];
 }
 
-export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
+export function MediaPopover() {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<TabId>('image');
@@ -144,10 +137,11 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
     [],
   );
 
-  // ─── Grouped select data (only available providers) ───
+  // ─── Grouped select data (only available + allowlisted providers) ───
   const imageGroups = useMemo(
     () =>
       Object.values(IMAGE_PROVIDERS)
+        .filter((p) => ALLOWED_IMAGE_PROVIDERS.includes(p.id))
         .filter((p) => cfgOk(imageProvidersConfig, p.id, p.requiresApiKey))
         .map((p) => {
           const items =
@@ -173,6 +167,7 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   const videoGroups = useMemo(
     () =>
       Object.values(VIDEO_PROVIDERS)
+        .filter((p) => ALLOWED_VIDEO_PROVIDERS.includes(p.id))
         .filter((p) => cfgOk(videoProvidersConfig, p.id, p.requiresApiKey))
         .map((p) => ({
           groupId: p.id,
@@ -191,8 +186,9 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
   const asrGroups = useMemo(() => {
     const groups: SelectGroupData[] = [];
 
-    // Built-in providers
+    // Built-in providers (allowlist-filtered)
     for (const p of Object.values(ASR_PROVIDERS)) {
+      if (!ALLOWED_ASR_PROVIDERS.includes(p.id)) continue;
       if (!cfgOk(asrProvidersConfig, p.id, p.requiresApiKey)) continue;
       groups.push({
         groupId: p.id,
@@ -350,20 +346,6 @@ export function MediaPopover({ onSettingsOpen }: MediaPopoverProps) {
               />
             </TabPanel>
           )}
-        </div>
-
-        {/* ── Footer ── */}
-        <div className="border-t border-border/40">
-          <button
-            onClick={() => {
-              setOpen(false);
-              onSettingsOpen(activeTab);
-            }}
-            className="w-full flex items-center justify-between px-3.5 py-2.5 text-[11px] text-muted-foreground/60 hover:text-muted-foreground transition-colors"
-          >
-            <span>{t('toolbar.advancedSettings')}</span>
-            <ChevronRight className="size-3" />
-          </button>
         </div>
       </PopoverContent>
     </Popover>
