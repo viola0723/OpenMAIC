@@ -201,6 +201,8 @@ export function resolveNarratorVoiceForGeneration(
  * Get the list of voice IDs for a TTS provider.
  * For browser-native-tts, returns empty (browser voices are dynamic).
  * For custom providers, reads from ttsProvidersConfig.customVoices.
+ * Built-in providers return the static catalog plus any user-entered
+ * customVoices (when ttsProvidersConfig is supplied).
  */
 export function getServerVoiceList(
   providerId: TTSProviderId,
@@ -215,7 +217,10 @@ export function getServerVoiceList(
   }
   const provider = TTS_PROVIDERS[providerId as keyof typeof TTS_PROVIDERS];
   if (!provider) return [];
-  return provider.voices.map((v) => v.id);
+  const customVoiceIds = (
+    (ttsProvidersConfig?.[providerId]?.customVoices as Array<{ id: string }> | undefined) || []
+  ).map((v) => v.id);
+  return [...provider.voices.map((v) => v.id), ...customVoiceIds];
 }
 
 export interface ModelVoiceGroup {
@@ -256,6 +261,7 @@ export function getEnabledProvidersWithVoices(
       modelId?: string;
       providerOptions?: Record<string, unknown>;
       customName?: string;
+      customVoices?: Array<{ id: string; name: string }>;
     }
   >,
   voiceProfiles: UserVoiceProfile[] = [],
@@ -295,6 +301,15 @@ export function getEnabledProvidersWithVoices(
             name: profile.name,
             language: 'auto',
           }));
+    // Built-in providers may also carry user-entered custom voice IDs (MiniMax
+    // exposes its custom-voice input in settings). Dedupe against the static
+    // catalog so a re-added catalog ID never renders twice.
+    const customVoiceEntries = (
+      (providerConfig?.customVoices as Array<{ id: string; name: string }> | undefined) || []
+    )
+      .filter((voice) => !config.voices.some((catalog) => catalog.id === voice.id))
+      .map((voice) => ({ id: voice.id, name: voice.name, language: 'auto' }));
+    const extraVoices = [...userVoices, ...customVoiceEntries];
 
     {
       const allVoices = [
@@ -303,7 +318,7 @@ export function getEnabledProvidersWithVoices(
           name: v.name,
           language: v.language,
         })),
-        ...userVoices,
+        ...extraVoices,
       ];
 
       // Build model groups
@@ -317,9 +332,9 @@ export function getEnabledProvidersWithVoices(
                   .filter((v) => !v.compatibleModels || v.compatibleModels.includes(model.id))
                   .map((v) => ({ id: v.id, name: v.name, language: v.language }));
           if (providerId === VOXCPM_TTS_PROVIDER_ID) {
-            compatibleVoices.push(...userVoices);
+            compatibleVoices.push(...extraVoices);
           } else if (providerId !== 'qwen-tts' || isQwenVoiceCloneModel(model.id)) {
-            compatibleVoices.push(...userVoices);
+            compatibleVoices.push(...extraVoices);
           }
           modelGroups.push({
             modelId: model.id,
@@ -389,6 +404,7 @@ export function getSelectableProvidersWithVoices(
       modelId?: string;
       providerOptions?: Record<string, unknown>;
       customName?: string;
+      customVoices?: Array<{ id: string; name: string }>;
     }
   >,
   voiceProfiles: UserVoiceProfile[] = [],
@@ -421,13 +437,16 @@ export function findVoiceDisplayName(
   voiceId: string,
   ttsProvidersConfig?: Record<string, Record<string, unknown>>,
 ): string {
-  if (isCustomTTSProvider(providerId) && ttsProvidersConfig) {
+  // User-entered custom voice IDs take display-name precedence for both custom
+  // and built-in providers (MiniMax settings can attach custom voices too).
+  if (ttsProvidersConfig) {
     const customVoices = ttsProvidersConfig[providerId]?.customVoices as
       | Array<{ id: string; name: string }>
       | undefined;
-    const voice = customVoices?.find((v) => v.id === voiceId);
-    return voice?.name ?? voiceId;
+    const customVoice = customVoices?.find((v) => v.id === voiceId);
+    if (customVoice) return customVoice.name;
   }
+  if (isCustomTTSProvider(providerId)) return voiceId;
   // Object.hasOwn, not a bare index: a prototype-chain key ('toString', …)
   // would resolve to a function and crash the `.voices` access below.
   const provider = Object.hasOwn(TTS_PROVIDERS, providerId)

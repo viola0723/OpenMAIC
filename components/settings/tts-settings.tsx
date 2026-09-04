@@ -105,6 +105,12 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
   // hand, so they are hidden from the manual model list.
   const manuallySelectableModels = getManuallySelectableTTSModels(selectedProviderId);
   const providerConfig = ttsProvidersConfig[selectedProviderId];
+  // Fall back to the registry default when nothing is stored or a stored id no
+  // longer exists in the manually selectable list.
+  const selectedTTSModelId =
+    manuallySelectableModels.find((model) => model.id === providerConfig?.modelId)?.id ??
+    ttsProvider?.defaultModelId ??
+    manuallySelectableModels[0]?.id;
   const isServerConfigured = !!providerConfig?.isServerConfigured;
   // Per-provider enablement (#665): the toggle is meaningful only for an
   // AVAILABLE provider (configured / server-managed). An unconfigured provider
@@ -591,28 +597,49 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
       {manuallySelectableModels.length > 0 && !isVoxCPM && (
         <div className="space-y-2">
           <Label className="text-sm text-muted-foreground">{t('settings.availableModels')}</Label>
-          <div className="flex flex-wrap gap-2">
-            {manuallySelectableModels.map((model) => (
-              <div
-                key={model.id}
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/40 text-xs font-mono text-muted-foreground"
-              >
-                <span className="size-1.5 rounded-full bg-emerald-500/70" />
-                {model.name}
+          {selectedProviderId === 'minimax-tts' ? (
+            <Select
+              value={selectedTTSModelId}
+              onValueChange={(modelId) => setTTSProviderConfig(selectedProviderId, { modelId })}
+            >
+              <SelectTrigger className="w-full sm:w-80">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {manuallySelectableModels.map((model) => (
+                  <SelectItem key={model.id} value={model.id}>
+                    {model.name}（{model.id}）
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {manuallySelectableModels.map((model) => (
+                  <div
+                    key={model.id}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-muted/50 border border-border/40 text-xs font-mono text-muted-foreground"
+                  >
+                    <span className="size-1.5 rounded-full bg-emerald-500/70" />
+                    {model.name}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground/60">
-            {t('settings.modelSelectedViaVoice')}
-          </p>
+              <p className="text-[11px] text-muted-foreground/60">
+                {t('settings.modelSelectedViaVoice')}
+              </p>
+            </>
+          )}
         </div>
       )}
 
       {selectedProviderId === 'voxcpm-tts' && <VoxCPMVoiceManager />}
       {selectedProviderId === 'qwen-tts' && <QwenVoiceCloneManager />}
 
-      {/* Custom Voice List Management */}
-      {isCustom && (
+      {/* Custom Voice List Management — also exposed to MiniMax: its system
+          voice catalog is large and users may hold cloned voice IDs. */}
+      {(isCustom || selectedProviderId === 'minimax-tts') && (
         <div className="space-y-3">
           <Label className="text-sm">{t('settings.customVoices')}</Label>
           {(providerConfig?.customVoices as Array<{ id: string; name: string }> | undefined)
@@ -668,14 +695,17 @@ export function TTSSettings({ selectedProviderId }: TTSSettingsProps) {
                 </div>
               ))}
             </div>
-          ) : (
+          ) : isCustom ? (
             <p className="text-sm text-muted-foreground/50 italic">{t('settings.noVoicesAdded')}</p>
-          )}
+          ) : null}
           <AddVoiceRow
-            existingIds={(
-              (providerConfig?.customVoices as Array<{ id: string; name: string }> | undefined) ||
-              []
-            ).map((v) => v.id)}
+            existingIds={[
+              ...(!isCustom && ttsProvider ? ttsProvider.voices.map((v) => v.id) : []),
+              ...((
+                (providerConfig?.customVoices as Array<{ id: string; name: string }> | undefined) ||
+                []
+              ).map((v) => v.id)),
+            ]}
             onAdd={(voiceId, voiceName) => {
               const voices = [
                 ...((providerConfig?.customVoices as

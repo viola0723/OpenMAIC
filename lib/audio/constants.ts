@@ -716,31 +716,70 @@ export const TTS_PROVIDERS: Record<BuiltInTTSProviderId, TTSProviderConfig> = {
     models: MINIMAX_TTS_MODELS.map((m) => ({ id: m.id, name: m.name })),
     defaultModelId: 'speech-2.8-hd',
     voices: [
-      // 中文常用
-      {
-        id: 'female-yujie',
-        name: '御姐音色',
-        language: 'zh-CN',
-        gender: 'female',
-      },
-      {
-        id: 'male-qn-jingying',
-        name: '精英青年',
-        language: 'zh-CN',
-        gender: 'male',
-      },
-      {
-        id: 'female-shaonv',
-        name: '少女音色',
-        language: 'zh-CN',
-        gender: 'female',
-      },
+      // 中文·普通话 男声
+      { id: 'male-qn-qingse', name: '青涩青年', language: 'zh-CN', gender: 'male' },
+      { id: 'male-qn-jingying', name: '精英青年', language: 'zh-CN', gender: 'male' },
+      { id: 'male-qn-badao', name: '霸道青年', language: 'zh-CN', gender: 'male' },
+      { id: 'male-qn-daxuesheng', name: '青年大学生', language: 'zh-CN', gender: 'male' },
       {
         id: 'Chinese (Mandarin)_Gentleman',
         name: '温润男声',
         language: 'zh-CN',
         gender: 'male',
       },
+      {
+        id: 'Chinese (Mandarin)_Gentle_Youth',
+        name: '温润青年',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Sincere_Adult',
+        name: '真诚青年',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Southern_Young_Man',
+        name: '南方小哥',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Unrestrained_Young_Man',
+        name: '不羁青年',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Male_Announcer',
+        name: '播报男声',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Radio_Host',
+        name: '电台男主播',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Lyrical_Voice',
+        name: '抒情男声',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      {
+        id: 'Chinese (Mandarin)_Reliable_Executive',
+        name: '沉稳高管',
+        language: 'zh-CN',
+        gender: 'male',
+      },
+      // 中文·普通话 女声
+      { id: 'female-shaonv', name: '少女音色', language: 'zh-CN', gender: 'female' },
+      { id: 'female-yujie', name: '御姐音色', language: 'zh-CN', gender: 'female' },
+      { id: 'female-chengshu', name: '成熟女性', language: 'zh-CN', gender: 'female' },
+      { id: 'female-tianmei', name: '甜美女性', language: 'zh-CN', gender: 'female' },
       {
         id: 'Chinese (Mandarin)_News_Anchor',
         name: '新闻女声',
@@ -754,10 +793,62 @@ export const TTS_PROVIDERS: Record<BuiltInTTSProviderId, TTSProviderConfig> = {
         gender: 'female',
       },
       {
-        id: 'Chinese (Mandarin)_Radio_Host',
-        name: '电台男主播',
+        id: 'Chinese (Mandarin)_Soft_Girl',
+        name: '柔和少女',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'Chinese (Mandarin)_Crisp_Girl',
+        name: '清脆少女',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'Chinese (Mandarin)_Sweet_Lady',
+        name: '甜美女声',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'Chinese (Mandarin)_Gentle_Senior',
+        name: '温柔学姐',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'Chinese (Mandarin)_Wise_Women',
+        name: '阅历姐姐',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'Chinese (Mandarin)_Warm_Bestie',
+        name: '温暖闺蜜',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      // 中文·老人与儿童
+      {
+        id: 'Chinese (Mandarin)_Kind-hearted_Elder',
+        name: '花甲奶奶',
+        language: 'zh-CN',
+        gender: 'female',
+      },
+      {
+        id: 'Chinese (Mandarin)_Humorous_Elder',
+        name: '搞笑大爷',
         language: 'zh-CN',
         gender: 'male',
+      },
+      { id: 'clever_boy', name: '聪明男童', language: 'zh-CN', gender: 'male' },
+      { id: 'lovely_girl', name: '萌萌女童', language: 'zh-CN', gender: 'female' },
+      // 粤语
+      {
+        id: 'Cantonese_GentleLady',
+        name: '粤语温柔女声',
+        language: 'zh-HK',
+        gender: 'female',
       },
       // 英文
       {
