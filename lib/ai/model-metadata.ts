@@ -248,7 +248,20 @@ const doubaoSeed20Effort: ThinkingCapability = {
   defaultEnabled: true,
 };
 
-const minimaxM3Thinking = toggleCapability('anthropic', false);
+// MiniMax M3 (Anthropic-compatible endpoint): the server default is adaptive
+// thinking, so the control offers only 自动 (send nothing, keep server
+// adaptive) and 关 (`{thinking:{type:'disabled'}}`, injected by the minimax
+// fetch wrapper in providers.ts). The 'enabled' option is withheld: the
+// endpoint's acceptance of it is unverified.
+const minimaxM3Thinking: ThinkingCapability = {
+  control: 'mode',
+  requestAdapter: 'anthropic',
+  defaultMode: 'auto',
+  modeValues: ['auto', 'disabled'],
+  toggleable: true,
+  budgetAdjustable: false,
+  defaultEnabled: true,
+};
 
 const openaiGpt56Effort: ThinkingCapability = {
   control: 'effort',
@@ -339,6 +352,7 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
     -1,
   ),
 
+  [getModelMetadataKey('glm', 'glm-5.3-flash')]: toggleCapability('glm'),
   [getModelMetadataKey('glm', 'glm-5.2')]: glm52Effort,
   [getModelMetadataKey('glm', 'glm-5.1')]: toggleCapability('glm'),
   [getModelMetadataKey('glm', 'glm-5v-turbo')]: toggleCapability('glm'),
@@ -365,6 +379,7 @@ const THINKING_CAPABILITIES: Record<string, ThinkingCapability> = {
 
   [getModelMetadataKey('deepseek', 'deepseek-v4-pro')]: deepseekEffort,
   [getModelMetadataKey('deepseek', 'deepseek-v4-flash')]: deepseekEffort,
+  [getModelMetadataKey('deepseek', 'deepseek-v4-flash-vision-exp')]: toggleCapability('deepseek'),
   [getModelMetadataKey('atlascloud', 'deepseek-ai/deepseek-v4-pro')]: deepseekEffort,
 
   [getModelMetadataKey('kimi', 'kimi-k3')]: kimiK3Effort,

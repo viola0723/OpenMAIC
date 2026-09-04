@@ -631,6 +631,22 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
     requiresApiKey: true,
     icon: '/logos/glm.svg',
     models: [
+      // GLM-5.3 Series - Flash: cheap multimodal fallback (1M ctx, native vision)
+      {
+        id: 'glm-5.3-flash',
+        name: 'GLM-5.3-Flash',
+        contextWindow: 1000000,
+        outputWindow: 128000,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
+            defaultEnabled: true,
+          },
+        },
+      },
       // GLM-5.2 Series - Long-horizon coding model
       {
         id: 'glm-5.2',
@@ -921,6 +937,22 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
           thinking: {
             toggleable: true,
             budgetAdjustable: true,
+            defaultEnabled: true,
+          },
+        },
+      },
+      {
+        // Experimental multimodal vision variant of V4 Flash (image input, token-billed)
+        id: 'deepseek-v4-flash-vision-exp',
+        name: 'DeepSeek V4 Flash Vision (Exp)',
+        contextWindow: 1048576,
+        outputWindow: 393216,
+        capabilities: {
+          streaming: true,
+          tools: true,
+          vision: true,
+          thinking: {
+            toggleable: true,
             defaultEnabled: true,
           },
         },

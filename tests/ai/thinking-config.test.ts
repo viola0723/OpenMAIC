@@ -40,13 +40,15 @@ describe('thinking config metadata', () => {
     expect(supportsConfigurableThinking(kimiK27CodeHighSpeedThinking)).toBe(false);
   });
 
-  it('exposes MiniMax M3 thinking as a toggle through the Anthropic adapter', () => {
+  it('exposes MiniMax M3 thinking as 自动(adaptive)/关 through the Anthropic adapter', () => {
     const thinking = getThinking('minimax', 'MiniMax-M3');
 
     expect(supportsConfigurableThinking(thinking)).toBe(true);
-    expect(thinking?.control).toBe('toggle');
+    expect(thinking?.control).toBe('mode');
     expect(thinking?.requestAdapter).toBe('anthropic');
-    expect(getDefaultThinkingConfig(thinking)).toEqual({ mode: 'disabled' });
+    expect(thinking?.modeValues).toEqual(['auto', 'disabled']);
+    // Default is 'auto' — nothing is sent, the server-side adaptive default holds.
+    expect(getDefaultThinkingConfig(thinking)).toEqual({ mode: 'auto' });
   });
 
   it('exposes Claude Haiku 4.5 thinking as budget-only, not effort', () => {
@@ -90,7 +92,11 @@ describe('thinking config metadata', () => {
     );
     expect(googleModels).toContain('gemini-3.1-pro-preview');
     expect(googleModels).not.toContain('gemini-3-pro-preview');
-    expect(deepseekModels).toEqual(['deepseek-v4-pro', 'deepseek-v4-flash']);
+    expect(deepseekModels).toEqual([
+      'deepseek-v4-pro',
+      'deepseek-v4-flash',
+      'deepseek-v4-flash-vision-exp',
+    ]);
     expect(hunyuanModels).toEqual(['hy3-preview']);
     expect(minimaxModels).toEqual(['MiniMax-M3', 'MiniMax-M2.7']);
     expect(siliconflowModels).not.toContain('MiniMaxAI/MiniMax-M2');

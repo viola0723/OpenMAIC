@@ -85,6 +85,8 @@ export interface ThinkingCapability {
   levelValues?: ThinkingLevel[];
   /** Default level for level-based models. */
   defaultLevel?: ThinkingLevel;
+  /** Allowed modes for mode-based controls (default: auto/disabled/enabled). */
+  modeValues?: ThinkingMode[];
   /** Allowed budget range for budget-based models. */
   budgetRange?: {
     min: number;
