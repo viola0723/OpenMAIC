@@ -304,12 +304,15 @@ export function buildGenerateImageTool(
         );
       }
 
-      const options = resolveImageSize({
-        prompt: params.styleHint
-          ? `${prompt}\nStyle direction: ${params.styleHint.trim()}`
-          : prompt,
-        aspectRatio: params.aspectRatio ?? '16:9',
-      });
+      const options = resolveImageSize(
+        {
+          prompt: params.styleHint
+            ? `${prompt}\nStyle direction: ${params.styleHint.trim()}`
+            : prompt,
+          aspectRatio: params.aspectRatio ?? '16:9',
+        },
+        { providerId, modelId: model },
+      );
       const ioSignal = combineSignals(callerSignal, deps.timeoutMs ?? GENERATE_IMAGE_TIMEOUT_MS);
 
       try {

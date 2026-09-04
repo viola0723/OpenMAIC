@@ -158,6 +158,8 @@ export interface ImageGenerationOptions {
   aspectRatio?: '16:9' | '4:3' | '1:1' | '9:16';
   /** Optional artistic style (must be supported by the chosen provider) */
   style?: string;
+  /** Quality tier for providers that support it (e.g. OpenAI gpt-image-* models) */
+  quality?: 'low' | 'medium' | 'high';
   /** Owning stage, for server-side attribution of a generation call. */
   stageId?: string;
   /** Cancel server-side provider I/O (agent runtime / background callers). */

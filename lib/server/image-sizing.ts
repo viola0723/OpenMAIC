@@ -9,6 +9,8 @@
  *    seedream 5.0 requires >= 3,686,400 px and returns HTTP 400 otherwise, so
  *    the 1024-wide sizes callers ask for would always fail. Unset (the
  *    default) changes nothing.
+ * 3. **quality pin** (`IMAGE_OPENAI_QUALITY`): for openai-image gpt-image-*
+ *    models, injects the operator-configured quality tier (default `low`).
  *
  * This lives here rather than in `lib/media/image-providers.ts` because it reads
  * `process.env`; the pure geometry it builds on (`applyMinPixelFloor`,
@@ -40,6 +42,21 @@ function resolveGPTImage2Size(width: number, height: number) {
   if (width > height) return GPT_IMAGE_2_LANDSCAPE;
   if (height > width) return GPT_IMAGE_2_PORTRAIT;
   return GPT_IMAGE_2_SQUARE;
+}
+
+const IMAGE_QUALITY_TIERS = ['low', 'medium', 'high'] as const;
+type ImageQualityTier = (typeof IMAGE_QUALITY_TIERS)[number];
+
+/**
+ * Operator-pinned quality for openai-image gpt-image-* models. Reads
+ * `IMAGE_OPENAI_QUALITY`; unset or unrecognized values fall back to `low`.
+ */
+function resolveOpenAIImageQuality(): ImageQualityTier {
+  const raw = process.env.IMAGE_OPENAI_QUALITY?.trim().toLowerCase();
+  if (!raw) return 'low';
+  if ((IMAGE_QUALITY_TIERS as readonly string[]).includes(raw)) return raw as ImageQualityTier;
+  log.warn(`Unrecognized IMAGE_OPENAI_QUALITY="${raw}"; falling back to "low"`);
+  return 'low';
 }
 
 /**
@@ -92,6 +109,16 @@ export function resolveImageSize<T extends ImageGenerationOptions>(
           `to ${normalized.width}x${normalized.height}`,
       );
     }
+  }
+
+  // Every gpt-image-* generation goes through the operator-pinned quality
+  // tier (IMAGE_OPENAI_QUALITY, default low) so server-issued images never
+  // silently bill at a higher tier.
+  if (
+    constraints?.providerId === 'openai-image' &&
+    constraints.modelId?.startsWith('gpt-image-')
+  ) {
+    resolved.quality = resolveOpenAIImageQuality();
   }
 
   return resolved;

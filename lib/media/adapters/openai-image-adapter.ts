@@ -68,18 +68,26 @@ export async function generateWithOpenAIImage(
   const width = options.width || 1024;
   const height = options.height || 1024;
 
+  const body: Record<string, string | number> = {
+    model,
+    prompt: options.prompt,
+    n: 1,
+    size: resolveSize(options),
+  };
+  // `quality` exists only on the gpt-image-* line of the Images API; sending
+  // it to other OpenAI image models risks a 400. The server layer pins the
+  // value via resolveImageSize; 'low' here is just the backstop.
+  if (model.startsWith('gpt-image-')) {
+    body.quality = options.quality ?? 'low';
+  }
+
   const response = await fetch(`${baseUrl}/images/generations`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${config.apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      prompt: options.prompt,
-      n: 1,
-      size: resolveSize(options),
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {

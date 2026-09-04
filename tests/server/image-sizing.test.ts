@@ -3,6 +3,7 @@ import { resolveImageSize } from '@/lib/server/image-sizing';
 import type { ImageGenerationOptions } from '@/lib/media/types';
 
 const originalMinPixels = process.env.IMAGE_MIN_PIXELS;
+const originalOpenAIQuality = process.env.IMAGE_OPENAI_QUALITY;
 
 function options(overrides: Partial<ImageGenerationOptions> = {}): ImageGenerationOptions {
   return { prompt: 'a prompt', ...overrides };
@@ -11,6 +12,7 @@ function options(overrides: Partial<ImageGenerationOptions> = {}): ImageGenerati
 describe('resolveImageSize', () => {
   beforeEach(() => {
     delete process.env.IMAGE_MIN_PIXELS;
+    delete process.env.IMAGE_OPENAI_QUALITY;
   });
 
   afterEach(() => {
@@ -18,6 +20,11 @@ describe('resolveImageSize', () => {
       delete process.env.IMAGE_MIN_PIXELS;
     } else {
       process.env.IMAGE_MIN_PIXELS = originalMinPixels;
+    }
+    if (originalOpenAIQuality === undefined) {
+      delete process.env.IMAGE_OPENAI_QUALITY;
+    } else {
+      process.env.IMAGE_OPENAI_QUALITY = originalOpenAIQuality;
     }
   });
 
@@ -77,5 +84,35 @@ describe('resolveImageSize', () => {
     // edge and scales it up (1024x1024 -> 1920x1920 hits the seedream floor).
     process.env.IMAGE_MIN_PIXELS = '3686400';
     expect(resolveImageSize(options({}))).toMatchObject({ width: 1920, height: 1920 });
+  });
+
+  it('pins quality to low by default for openai-image gpt-image models', () => {
+    const result = resolveImageSize(options({ aspectRatio: '1:1' }), {
+      providerId: 'openai-image',
+      modelId: 'gpt-image-2',
+    });
+
+    expect(result.quality).toBe('low');
+  });
+
+  it('honors IMAGE_OPENAI_QUALITY and rejects unrecognized values', () => {
+    process.env.IMAGE_OPENAI_QUALITY = 'medium';
+    const constraints = { providerId: 'openai-image', modelId: 'gpt-image-1.5' };
+    expect(resolveImageSize(options({}), constraints).quality).toBe('medium');
+
+    process.env.IMAGE_OPENAI_QUALITY = 'ultra';
+    expect(resolveImageSize(options({}), constraints).quality).toBe('low');
+  });
+
+  it('leaves quality unset for other providers and models', () => {
+    expect(
+      resolveImageSize(options({}), { providerId: 'seedream', modelId: 'doubao-seedream-5-0' })
+        .quality,
+    ).toBeUndefined();
+    expect(
+      resolveImageSize(options({}), { providerId: 'openai-image', modelId: 'chatgpt-image-latest' })
+        .quality,
+    ).toBeUndefined();
+    expect(resolveImageSize(options({})).quality).toBeUndefined();
   });
 });

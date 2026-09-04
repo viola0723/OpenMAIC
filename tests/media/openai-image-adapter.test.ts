@@ -44,6 +44,7 @@ describe('openai-image-adapter', () => {
       prompt: 'a classroom diagram',
       n: 1,
       size: '1536x1024',
+      quality: 'low',
     });
     expect(result).toEqual({
       url: 'https://cdn.example.com/image.png',
@@ -51,6 +52,25 @@ describe('openai-image-adapter', () => {
       width: 1536,
       height: 1024,
     });
+  });
+
+  it('passes an explicit quality through and omits it for non gpt-image models', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ url: 'https://cdn.example.com/image.png' }] }),
+    });
+
+    await generateWithOpenAIImage(
+      { providerId: 'openai-image', apiKey: 'sk-test', model: 'gpt-image-2' },
+      { prompt: 'hi-res', quality: 'high' },
+    );
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body).quality).toBe('high');
+
+    await generateWithOpenAIImage(
+      { providerId: 'openai-image', apiKey: 'sk-test', model: 'chatgpt-image-latest' },
+      { prompt: 'no quality field', quality: 'high' },
+    );
+    expect(JSON.parse(mockFetch.mock.calls[1][1].body)).not.toHaveProperty('quality');
   });
 
   it('returns base64 image data when OpenAI responds inline', async () => {
