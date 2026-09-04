@@ -80,6 +80,14 @@ export const WEB_SEARCH_PROVIDERS: Record<WebSearchProviderId, WebSearchProvider
     requiresBaseUrl: true,
     endpointPath: '/search',
   },
+  anysearch: {
+    id: 'anysearch',
+    name: 'AnySearch',
+    // Anonymous free tier works keyless (per-IP rate limit + daily quota).
+    requiresApiKey: false,
+    defaultBaseUrl: 'https://api.anysearch.com',
+    endpointPath: '/v1/search',
+  },
 };
 
 /** Default model for Claude web search (Sonnet tier: balanced speed/cost for search + summarize). */

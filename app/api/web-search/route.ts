@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
     let providerId: WebSearchProviderId =
       requestProviderId && WEB_SEARCH_PROVIDERS[requestProviderId]
         ? requestProviderId
-        : (serverProviderId ?? 'tavily');
+        : (serverProviderId ?? 'anysearch');
 
     // Prefer the operator's server-configured backend over stale client defaults
     // (e.g. Tavily without a key, or Brave HTML scrape with empty results).
@@ -211,6 +211,8 @@ function getWebSearchEnvKey(providerId: WebSearchProviderId): string {
       return 'WEB_SEARCH_DOUBAO_API_KEY';
     case 'searxng':
       return 'SEARXNG_BASE_URL';
+    case 'anysearch':
+      return 'WEB_SEARCH_ANYSEARCH_API_KEY';
     case 'tavily':
     default:
       return 'TAVILY_API_KEY';

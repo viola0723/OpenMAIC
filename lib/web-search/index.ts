@@ -1,3 +1,4 @@
+import { searchWithAnySearch } from './anysearch';
 import { searchWithBaidu } from './baidu';
 import { searchWithBocha } from './bocha';
 import { searchWithBrave } from './brave';
@@ -36,6 +37,14 @@ export async function searchWeb(params: {
   const abortOptions = signal ? { signal } : {};
 
   switch (providerId) {
+    case 'anysearch':
+      return searchWithAnySearch({
+        query,
+        apiKey: apiKey || undefined,
+        maxResults,
+        baseUrl,
+        ...abortOptions,
+      });
     case 'baidu':
       return searchWithBaidu({
         query,

@@ -33,6 +33,7 @@ import { IMAGE_PROVIDERS } from '@/lib/media/image-providers';
 import { VIDEO_PROVIDERS } from '@/lib/media/video-providers';
 import { WEB_SEARCH_PROVIDERS, buildWebSearchFallbackOrder } from '@/lib/web-search/constants';
 import type { BaiduSubSources, WebSearchProviderId } from '@/lib/web-search/types';
+import { ALLOWED_SEARCH_PROVIDERS, isProviderAllowed } from '@/lib/config/product-allowlists';
 import { createLogger } from '@/lib/logger';
 import {
   validateProvider,
@@ -592,7 +593,7 @@ const getDefaultVideoConfig = () => ({
 
 // Initialize default Web Search config
 const getDefaultWebSearchConfig = () => ({
-  webSearchProviderId: 'tavily' as WebSearchProviderId,
+  webSearchProviderId: 'anysearch' as WebSearchProviderId,
   webSearchProvidersConfig: {
     tavily: { apiKey: '', baseUrl: '', enabled: true, requiresApiKey: true },
     exa: {
@@ -631,6 +632,12 @@ const getDefaultWebSearchConfig = () => ({
     searxng: {
       apiKey: '',
       baseUrl: '',
+      enabled: true,
+      requiresApiKey: false,
+    },
+    anysearch: {
+      apiKey: '',
+      baseUrl: WEB_SEARCH_PROVIDERS.anysearch.defaultBaseUrl || '',
       enabled: true,
       requiresApiKey: false,
     },
@@ -674,7 +681,13 @@ function ensureValidProviderSelections(state: Partial<SettingsState>): void {
     state.pdfProviderId = defaultPdfConfig.pdfProviderId;
   }
 
-  if (!hasProviderId(WEB_SEARCH_PROVIDERS, state.webSearchProviderId)) {
+  // Registry membership alone is not enough: the product allowlist pins the
+  // sole built-in engine, so a persisted legacy pick (e.g. tavily/minimax)
+  // must migrate to the default instead of pointing at a hidden provider.
+  if (
+    !hasProviderId(WEB_SEARCH_PROVIDERS, state.webSearchProviderId) ||
+    !isProviderAllowed(state.webSearchProviderId as string, ALLOWED_SEARCH_PROVIDERS)
+  ) {
     state.webSearchProviderId = defaultWebSearchConfig.webSearchProviderId;
   }
   ensureBaiduSubSources(state);
@@ -1750,7 +1763,7 @@ export const useSettingsStore = create<SettingsState>()(
                 state.webSearchProviderId,
                 newWebSearchConfig,
                 webSearchFallback,
-                'tavily' as WebSearchProviderId,
+                'anysearch' as WebSearchProviderId,
               );
 
               // Auto-recover: when the selected provider is empty/unusable but
@@ -2129,7 +2142,7 @@ export const useSettingsStore = create<SettingsState>()(
           const oldApiKey = (stateRecord.webSearchApiKey as string) || '';
           const oldIsServerConfigured =
             (stateRecord.webSearchIsServerConfigured as boolean) || false;
-          state.webSearchProviderId = 'tavily' as WebSearchProviderId;
+          state.webSearchProviderId = 'anysearch' as WebSearchProviderId;
           state.webSearchProvidersConfig = {
             tavily: {
               apiKey: oldApiKey,
@@ -2177,6 +2190,12 @@ export const useSettingsStore = create<SettingsState>()(
             searxng: {
               apiKey: '',
               baseUrl: '',
+              enabled: true,
+              requiresApiKey: false,
+            },
+            anysearch: {
+              apiKey: '',
+              baseUrl: WEB_SEARCH_PROVIDERS.anysearch.defaultBaseUrl || '',
               enabled: true,
               requiresApiKey: false,
             },
