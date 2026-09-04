@@ -2021,6 +2021,12 @@
     "placeholder": "Access code",
     "error": "Invalid access code. Please try again."
   },
+  "settingsCode": {
+    "title": "Enter Settings Code",
+    "placeholder": "Settings code",
+    "error": "Invalid settings code. Please try again.",
+    "cancel": "Cancel"
+  },
   "workbench": {
     "tool": {
       "label": {

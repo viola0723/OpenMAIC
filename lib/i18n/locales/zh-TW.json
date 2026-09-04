@@ -1988,6 +1988,12 @@
     "placeholder": "課堂碼",
     "error": "課堂碼錯誤，請重試。"
   },
+  "settingsCode": {
+    "title": "請輸入設定密碼",
+    "placeholder": "設定密碼",
+    "error": "設定密碼錯誤，請重試。",
+    "cancel": "取消"
+  },
   "classroomComplete": {
     "title": "課程完成",
     "trailLabels": {

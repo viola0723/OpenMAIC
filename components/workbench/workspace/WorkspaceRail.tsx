@@ -99,6 +99,7 @@ import { ProBadge } from '@/components/workbench/ProBadge';
 import { LanguageSwitcher } from '@/components/language-switcher';
 import { ThemeToggle } from '@/components/site-header/theme-toggle';
 import { SettingsDialog } from '@/components/settings';
+import { useSettingsGate } from '@/lib/hooks/use-settings-gate';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -261,6 +262,7 @@ export function WorkspaceRail({
   const [folderToDelete, setFolderToDelete] = useState<{ id: string; name: string } | null>(null);
   /** The model/provider settings dialog, opened from the rail's foot cluster. */
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { requestOpen: requestSettingsOpen, modal: settingsGateModal } = useSettingsGate();
 
   /**
    * Commit a folder rename. Returns null when it landed and a readable message
@@ -688,7 +690,7 @@ export function WorkspaceRail({
           <button
             type="button"
             data-testid="pro-nav-settings-mini"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => requestSettingsOpen(() => setSettingsOpen(true))}
             aria-label={t('settings.title')}
             title={t('settings.title')}
             className="ws-mini-btn"
@@ -1189,7 +1191,7 @@ export function WorkspaceRail({
         ) : null}
       </div>
 
-      <RailUtilities onOpenSettings={() => setSettingsOpen(true)} />
+      <RailUtilities onOpenSettings={() => requestSettingsOpen(() => setSettingsOpen(true))} />
 
       {resizeHandle}
 
@@ -1203,6 +1205,7 @@ export function WorkspaceRail({
           setSettingsOpen(next);
         }}
       />
+      {settingsGateModal}
 
       {/* Deleting a folder does something to the courses inside it, so it is
           asked as a question with that consequence stated — not the two-press

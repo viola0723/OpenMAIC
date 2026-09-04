@@ -36,6 +36,7 @@ import { InputGroup, InputGroupInput, InputGroupButton } from '@/components/ui/i
 import { Textarea as UITextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { SettingsDialog } from '@/components/settings';
+import { useSettingsGate } from '@/lib/hooks/use-settings-gate';
 import { GenerationToolbar } from '@/components/generation/generation-toolbar';
 import { AgentBar } from '@/components/agent/agent-bar';
 import { useTheme } from '@/lib/hooks/use-theme';
@@ -168,6 +169,7 @@ function HomePage() {
   const [settingsSection, setSettingsSection] = useState<
     import('@/lib/types/settings').SettingsSection | undefined
   >(undefined);
+  const { requestOpen: requestSettingsOpen, modal: settingsGateModal } = useSettingsGate();
 
   // Draft cache for requirement text
   const { cachedValue: cachedRequirement, updateCache: updateRequirementCache } =
@@ -795,7 +797,7 @@ function HomePage() {
         {/* Settings Button */}
         <div className="relative">
           <button
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => requestSettingsOpen(() => setSettingsOpen(true))}
             className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
           >
             <Settings className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
@@ -810,6 +812,7 @@ function HomePage() {
         }}
         initialSection={settingsSection}
       />
+      {settingsGateModal}
 
       {/* ═══ Background Decor ═══ */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -902,8 +905,10 @@ function HomePage() {
                   webSearch={form.webSearch}
                   onWebSearchChange={(v) => updateForm('webSearch', v)}
                   onSettingsOpen={(section) => {
-                    setSettingsSection(section);
-                    setSettingsOpen(true);
+                    requestSettingsOpen(() => {
+                      setSettingsSection(section);
+                      setSettingsOpen(true);
+                    });
                   }}
                   courseMaterials={form.courseMaterials}
                   onCourseMaterialsAdd={addCourseMaterials}

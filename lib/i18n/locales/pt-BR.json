@@ -2003,6 +2003,12 @@
     "placeholder": "Código de acesso",
     "error": "Código inválido. Tente novamente."
   },
+  "settingsCode": {
+    "title": "Digite o Código de Configurações",
+    "placeholder": "Código de configurações",
+    "error": "Código inválido. Tente novamente.",
+    "cancel": "Cancelar"
+  },
   "proMode": {
     "attach": "Anexar material",
     "mentionCourse": "引用课堂",

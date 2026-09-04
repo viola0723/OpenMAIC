@@ -28,6 +28,7 @@ import { CircularProgress } from '@/components/ui/circular-progress';
 import { VideoExportDialog } from './video-export-dialog';
 import { LanguageSwitcher } from '../language-switcher';
 import { SettingsDialog } from '../settings';
+import { useSettingsGate } from '@/lib/hooks/use-settings-gate';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -81,6 +82,7 @@ export function HeaderControls({
   const { t } = useI18n();
   const { theme, setTheme } = useTheme();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const { requestOpen: requestSettingsOpen, modal: settingsGateModal } = useSettingsGate();
   const [videoDialogOpen, setVideoDialogOpen] = useState(false);
 
   // Export plumbing — uses the stage / media task stores to check
@@ -202,7 +204,7 @@ export function HeaderControls({
 
         {/* Settings */}
         <button
-          onClick={() => setSettingsOpen(true)}
+          onClick={() => requestSettingsOpen(() => setSettingsOpen(true))}
           className="p-2 rounded-full text-gray-400 dark:text-gray-500 hover:bg-white dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200 hover:shadow-sm transition-all group"
           aria-label={t('settings.title')}
         >
@@ -391,6 +393,7 @@ export function HeaderControls({
       </DropdownMenu>
 
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      {settingsGateModal}
       {videoExportEnabled && (
         <VideoExportDialog open={videoDialogOpen} onOpenChange={setVideoDialogOpen} />
       )}

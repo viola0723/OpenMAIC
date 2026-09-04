@@ -2003,6 +2003,12 @@
     "placeholder": "Código de acceso",
     "error": "Código de acceso no válido. Inténtalo de nuevo."
   },
+  "settingsCode": {
+    "title": "Ingresa el código de configuración",
+    "placeholder": "Código de configuración",
+    "error": "Código de configuración no válido. Inténtalo de nuevo.",
+    "cancel": "Cancelar"
+  },
   "proMode": {
     "attach": "Adjuntar material",
     "mentionCourse": "引用课堂",

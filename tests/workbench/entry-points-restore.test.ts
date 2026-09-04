@@ -216,7 +216,7 @@ describe('entry point 3 — the settings entry in the rail’s foot cluster', ()
       rail.indexOf('renderCourseRow'),
     );
     expect(mini).toContain('data-testid="pro-nav-settings-mini"');
-    expect(mini).toContain('onClick={() => setSettingsOpen(true)}');
+    expect(mini).toContain('onClick={() => requestSettingsOpen(() => setSettingsOpen(true))}');
   });
 
   it('opens the model/provider dialog, mounted by the rail itself', () => {

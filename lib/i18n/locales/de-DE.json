@@ -2003,6 +2003,12 @@
     "placeholder": "Zugangscode",
     "error": "Ungültiger Zugangscode. Bitte versuche es erneut."
   },
+  "settingsCode": {
+    "title": "Einstellungscode eingeben",
+    "placeholder": "Einstellungscode",
+    "error": "Ungültiger Einstellungscode. Bitte versuche es erneut.",
+    "cancel": "Abbrechen"
+  },
   "proMode": {
     "attach": "Attach material",
     "mentionCourse": "引用课堂",

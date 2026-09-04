@@ -2003,6 +2003,12 @@
     "placeholder": "アクセスコード",
     "error": "アクセスコードが正しくありません。もう一度お試しください。"
   },
+  "settingsCode": {
+    "title": "設定コードを入力",
+    "placeholder": "設定コード",
+    "error": "設定コードが正しくありません。もう一度お試しください。",
+    "cancel": "キャンセル"
+  },
   "proMode": {
     "attach": "教材を添付",
     "mentionCourse": "引用课堂",

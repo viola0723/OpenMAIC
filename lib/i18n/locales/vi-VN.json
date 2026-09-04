@@ -2003,6 +2003,12 @@
     "placeholder": "Mã truy cập",
     "error": "Mã truy cập không đúng. Vui lòng thử lại."
   },
+  "settingsCode": {
+    "title": "Nhập mã cài đặt",
+    "placeholder": "Mã cài đặt",
+    "error": "Mã cài đặt không đúng. Vui lòng thử lại.",
+    "cancel": "Hủy"
+  },
   "proMode": {
     "attach": "Đính kèm tài liệu",
     "mentionCourse": "引用课堂",

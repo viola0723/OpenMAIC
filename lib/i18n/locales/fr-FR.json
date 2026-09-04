@@ -2003,6 +2003,12 @@
     "placeholder": "Code d’accès",
     "error": "Code d’accès invalide. Veuillez réessayer."
   },
+  "settingsCode": {
+    "title": "Saisissez le code des paramètres",
+    "placeholder": "Code des paramètres",
+    "error": "Code invalide. Veuillez réessayer.",
+    "cancel": "Annuler"
+  },
   "proMode": {
     "attach": "Joindre un support",
     "mentionCourse": "引用课堂",
