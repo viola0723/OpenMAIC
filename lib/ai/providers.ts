@@ -942,9 +942,11 @@ export const PROVIDERS: Record<ProviderId, ProviderConfig> = {
         },
       },
       {
-        // Experimental multimodal vision variant of V4 Flash (image input, token-billed)
-        id: 'deepseek-v4-flash-vision-exp',
-        name: 'DeepSeek V4 Flash Vision (Exp)',
+        // V4.1 Flash — the single official DeepSeek model since 2026-09; vision is now
+        // native. Legacy ids deepseek-v4-flash / deepseek-v4-flash-vision-exp are retired
+        // upstream and their requests are routed to this model at Flash pricing.
+        id: 'deepseek-flash',
+        name: 'DeepSeek V4.1 Flash',
         contextWindow: 1048576,
         outputWindow: 393216,
         capabilities: {

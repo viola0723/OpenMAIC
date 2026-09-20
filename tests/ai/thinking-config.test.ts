@@ -95,7 +95,7 @@ describe('thinking config metadata', () => {
     expect(deepseekModels).toEqual([
       'deepseek-v4-pro',
       'deepseek-v4-flash',
-      'deepseek-v4-flash-vision-exp',
+      'deepseek-flash',
     ]);
     expect(hunyuanModels).toEqual(['hy3-preview']);
     expect(minimaxModels).toEqual(['MiniMax-M3', 'MiniMax-M2.7']);
